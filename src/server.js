@@ -6,6 +6,8 @@ import {postRequest} from "./post-request.js";
 import {sseRequest} from "./sse-request.js";
 import {connectToLit, litcCacheClean} from "./lit.js";
 
+const uto = {};
+
 let socket;
 const litc = {};
 litcCacheClean(litc);
@@ -16,17 +18,23 @@ const httpsServer = createServer(readCerts(), function(request, response) {
   const country = getCountry(request);
   let userId = "";
   if(request.headers.cookie) {
-    userId = request.headers.cookie.split('"')[3];
+    const cookieParts = request.headers.cookie.split(";");
+    for(const cookiePart of cookieParts) {
+      if(cookiePart.trim().startsWith("acceptbitcoin=")) {
+        userId = cookiePart.split('"')[3];
+        break;
+      }
+    }
   }
 
   if(request.method === "GET") {
     if("accept" in request.headers && request.headers.accept === "text/event-stream") {
-      sseRequest(request, response, itemQueue, socket, litc, userId);
+      sseRequest(request, response, socket, litc, userId, uto);
     } else {
       getRequest(request, response, ip, country, userId);
     }
   } else if(request.method === "POST") {
-    postRequest(request, response, ip, country, itemQueue, userId);
+    postRequest(request, response, ip, country, userId, uto);
   }
 });
 
